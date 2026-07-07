@@ -1,0 +1,16 @@
+services:
+  database:
+    image: timescale/timescaledb:latest-pg16
+    container_name: price-intel-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: priceadmin
+      POSTGRES_PASSWORD: devpassword
+      POSTGRES_DB: priceintel
+    ports:
+      - '5432:5432'
+    volumes:
+      - price-db-data:/var/lib/postgresql/data
+
+volumes:
+  price-db-data:
