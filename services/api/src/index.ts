@@ -40,6 +40,28 @@ app.get("/api/products/:productId/history", async (req, res) => {
   }
 });
 
+// Daily average price history for one product (clean, aggregated).
+// Example: GET /api/products/85123A/daily
+app.get("/api/products/:productId/daily", async (req, res) => {
+  const { productId } = req.params;
+  try {
+    const result = await pool.query(
+      `SELECT
+         time_bucket('1 day', recorded_at) AS day,
+         AVG(price)::NUMERIC(10,2) AS avg_price
+       FROM price_history
+       WHERE product_id = $1
+       GROUP BY day
+       ORDER BY day ASC`,
+      [productId]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Database query failed" });
+  }
+});
+
 const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`API running on http://localhost:${PORT}`);

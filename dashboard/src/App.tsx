@@ -5,8 +5,8 @@ import {
 } from "recharts";
 
 type PricePoint = {
-  recorded_at: string;
-  price: string;
+  day: string;
+  avg_price: string;
 };
 
 function App() {
@@ -16,16 +16,16 @@ function App() {
   const productId = "85123A";
 
   useEffect(() => {
-    axios
-      .get(`http://localhost:4000/api/products/${productId}/history`)
-      .then((res) => {
-        const cleaned = res.data.map((point: PricePoint) => ({
-          date: new Date(point.recorded_at).toLocaleDateString(),
-          price: parseFloat(point.price),
-        }));
-        setData(cleaned);
-        setLoading(false);
-      })
+      axios
+        .get(`http://localhost:4000/api/products/${productId}/daily`)
+        .then((res) => {
+          const cleaned = res.data.map((point: PricePoint) => ({
+            date: new Date(point.day).toLocaleDateString(),
+            price: parseFloat(point.avg_price),
+          }));
+          setData(cleaned);
+          setLoading(false);
+        })
       .catch((err) => {
         console.error("Failed to load data:", err);
         setLoading(false);
