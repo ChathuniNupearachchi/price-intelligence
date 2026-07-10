@@ -1,6 +1,9 @@
 import express from "express";
 import cors from "cors";
 import { Pool } from "pg";
+import { exec } from "child_process";
+import path from "path";
+
 
 const app = express();
 app.use(cors());          // allow the browser frontend to call us
@@ -60,6 +63,39 @@ app.get("/api/products/:productId/daily", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Database query failed" });
   }
+});
+
+// AI forecast for one product — runs the Python Prophet script.
+// Example: GET /api/products/85123A/forecast
+app.get("/api/products/:productId/forecast", (req, res) => {
+  const { productId } = req.params;
+
+  // Basic safety: only allow simple alphanumeric product IDs,
+  // so nothing dangerous can be passed into the command.
+  if (!/^[A-Za-z0-9]+$/.test(productId)) {
+    return res.status(400).json({ error: "Invalid product ID" });
+  }
+
+  // Build the path to the Python script and its venv Python executable.
+  const aiWorkerDir = path.join(__dirname, "..", "..", "ai-worker");
+  const pythonExe = path.join(aiWorkerDir, "venv", "Scripts", "python.exe");
+  const script = path.join(aiWorkerDir, "forecast_prophet.py");
+
+  // Run: python forecast_prophet.py <productId>
+  exec(`"${pythonExe}" "${script}" ${productId}`, (error, stdout, stderr) => {
+    if (error) {
+      console.error("Forecast script error:", stderr);
+      return res.status(500).json({ error: "Forecast failed" });
+    }
+    try {
+      // The script prints JSON; parse it and send it on.
+      const result = JSON.parse(stdout);
+      res.json(result);
+    } catch (e) {
+      console.error("Could not parse forecast output:", stdout);
+      res.status(500).json({ error: "Invalid forecast output" });
+    }
+  });
 });
 
 const PORT = 4000;
